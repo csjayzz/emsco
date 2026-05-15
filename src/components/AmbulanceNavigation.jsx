@@ -97,12 +97,25 @@ export default function AmbulanceNavigation({
   // Send location updates to backend during active ride
   useEffect(() => {
     if (isRiding && rideId && ambulanceLocation) {
+      // Derive congestion_alpha from Google Maps route data.
+      // Alpha = traffic_duration / free_flow_duration (1.0 = no traffic, 2.0+ = heavy).
+      // If traffic data isn't available, default to 1.0 (free flow).
+      let congestionAlpha = 1.0;
+      if (directions?.routes?.[0]?.legs?.[0]) {
+        const leg = directions.routes[0].legs[0];
+        const freeFlow = leg.duration?.value || 1;
+        const inTraffic = leg.duration_in_traffic?.value || freeFlow;
+        congestionAlpha = Math.max(1.0, inTraffic / freeFlow);
+      }
+
       api.patch(`/rides/${rideId}/location`, {
         lat: ambulanceLocation.lat, lng: ambulanceLocation.lng,
-        speed, eta_minutes: parseFloat(eta) || null
+        speed, eta_minutes: parseFloat(eta) || null,
+        congestion_alpha: congestionAlpha,
+        weather: 0   // 0 = clear; can be extended with a weather API later
       }).catch(err => console.error("Error updating location:", err));
     }
-  }, [ambulanceLocation, isRiding, rideId, speed, eta]);
+  }, [ambulanceLocation, isRiding, rideId, speed, eta, directions]);
 
   // Listen for acknowledged alerts for this ride (ambulance view)
   useEffect(() => {
