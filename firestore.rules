@@ -1,0 +1,30 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Frontend uses backend JWT, so Firestore access is limited to
+    // realtime collections that do not depend on Firebase Auth.
+    match /alerts/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /activeRides/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /policeLocations/{document=**} {
+      allow read, write: if true;
+    }
+
+    match /hospitalAlerts/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
